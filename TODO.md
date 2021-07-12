@@ -13,9 +13,6 @@
 
 ## RISC-V Reader ERRATA:
 
-pg 16, Figure 2.3
-For lui and auipc, the immediate field is "imm[31:12]" when it should be "imm[19:0]"
-
 pg 27, Figure 2.8
 "a3 points to a[0]" should be "a0 points to a[0]"
 
