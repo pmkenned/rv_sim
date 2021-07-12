@@ -1,6 +1,6 @@
 # TODO
 
-- fence, fence.i, ecall, ebreak, csr*
+- fence, fence.i, ecall, ebreak, csr
 - RV64
 - RV32M
 - RV32F and RV32D
@@ -23,9 +23,10 @@ pg 126: beq, if (rs1 == rs2), this implies that if the *fields* are equal; it wo
 
 ## Misc Notes
 
-_Static_assert (0, "assert1");
+`_Static_assert (0, "assert1");`
 
 
+```
         3322222          2222211111            111 11000           0000000
         1098765          4321098765            432 10987           6543210
 R-type: func7..          rs2..rs1..            f3. rd...           opcode.
@@ -34,6 +35,7 @@ S-type: imm[11:5]        rs2..rs1..            f3. imm[4:0]        opcode.
 B-type: imm[12]imm[10:5] rs2..rs1..            f3. imm[4:1]imm[11] opcode.
 U-type: imm[31:12]       ..........            ... rd...           opcode.
 J-type: imm[20]imm[10:1] ....imm[11]imm[19:12] ... rd...           opcode.
+```
 
 Regs:
 x0 / zero
@@ -70,41 +72,133 @@ x30 / t5
 x31 / t6
 pc
 
-mstatus
-mip
-sip
-mie
-sie
-mcause
-scause
-mtvec
-stvec
-mtval
-stval
-mepc
-sepc
-mscratch
-sscratch
+### User-level CSRs
 
+ustatus         0x000
+fflags          0x001
+frm             0x002
+fcsr            0x003
+uie             0x004
+utvec           0x005
+uscratch        0x040
+uepc            0x041
+ucause          0x042
+utval           0x043
+uip             0x044
+cycle           0xc00
+time            0xc01
+instret         0xc02
+hpmcounter3     0xc03
+hpmcounter4     0xc04
+...
+hpmcounter31    0xc1f
+cycleh          0xc80
+timeh           0xc81
+instreth        0xc82
+hpmcounter3h    0xc83
+hpmcounter4h    0xc84
+...
+hpmcounter31h   0xc9f
+
+### Supervisor-level CSRs
+
+sstatus
+sedeleg
+sideleg
+sie
+stvec
+scounteren
+sscratch
+sepc
+scause
+stval
+sip
 satp
-misa
+
+### Hypervisor-level CSRs
+
+hstatus
+hedeleg
+hdie
+hcounteren
+hgeie
+htval
+hip
+hvip
+htinst
+hgeip
+hgatp
+htimedelta
+htimedeltah
+vsstatus
+vsie
+vstvec
+vsscratch
+vsepc
+vscause
+vstval
+vsip
+vsatp
+
+### Machine-level CSRs
+
 mvendorid
 marchid
+mimpid
 mhartid
-mimpd
-mtime
-mtimecmp
-mcycle
-minstret
-mhpmcounter3
-mhpmevent3
-
+mstatus
+misa
+medeleg
+mideleg
+mie
+mtvec
+mcounteren
+mstatush
+mscratch
+mepc
+mcause
+mtval
+mip
+mtinst
+mtval2
 pmpcfg0
 pmpcfg1
 pmpcfg2
 pmpcfg3
+...
+pmpcfg14
+pmpcfg15
+pmpaddr0
+pmpaddr1
+...
+pmpaddr63
+mcycle
+minstret
+mhpmcounter3
+mhpmcounter4
+...
+mhpmcounter31
+mcycleh
+minstreth
+mhpmcounter3h
+mhpmcounter4h
+...
+mhpmcounter31h
+mcouninhibit
+mhpmevent3
+mhpmevent4
+...
+mhpmevent31
+tselect
+tdata1
+tdata2
+tdata3
+dscr
+dpc
+dscratch0
+dscratch1
 
-medeleg
-sedeleg
-mideleg
-sideleg
+### Unknown
+
+mtime
+mtimecmp
