@@ -279,9 +279,17 @@ M_r(uint32_t addr, int size)
         else if (addr % 4 == 3) { data = (x & 0xff000000) >> 24; }
     } else if (size == 2) {
         uint32_t x = memory[addr/4];
-        if      (addr % 2 == 0) { data = (x & 0xffff); }
-        else if (addr % 2 == 1) { data = (x & 0xffff0000) >> 16; }
+        if      (addr % 4 == 0) { data = (x & 0xffff); }
+        else if (addr % 4 == 2) { data = (x & 0xffff0000) >> 16; }
+        else {
+            fprintf(stderr, "error: unaligned read access, addr = %08x, size = %d\n", addr, size);
+            assert(0);
+        }
     } else if (size == 4) {
+        if (addr % 4 != 0) {
+            fprintf(stderr, "error: unaligned read access, addr = %08x, size = %d\n", addr, size);
+        }
+        assert(addr % 4 == 0);
         data = memory[addr/4];
     }
     return data;
@@ -300,10 +308,18 @@ M_w(uint32_t addr, uint32_t data, int size)
         memory[addr/4] = x;
     } else if (size == 2) {
         uint32_t x = memory[addr/4];
-        if      (addr % 2 == 0) { x = (x & 0xffff0000) | (data & 0xffff); }
-        else if (addr % 2 == 1) { x = (x & 0x0000ffff) | ((data & 0xffff) >> 16); }
+        if      (addr % 4 == 0) { x = (x & 0xffff0000) | (data & 0xffff); }
+        else if (addr % 4 == 2) { x = (x & 0x0000ffff) | ((data & 0xffff) >> 16); }
+        else {
+            fprintf(stderr, "error: unaligned write access, addr = %08x, size = %d\n", addr, size);
+            assert(0);
+        }
         memory[addr/4] = x;
     } else if (size == 4) {
+        if (addr % 4 != 0) {
+            fprintf(stderr, "error: unaligned write access, addr = %08x, size = %d\n", addr, size);
+        }
+        assert(addr % 4 == 0);
         memory[addr/4] = data;
     }
 }
@@ -559,7 +575,7 @@ decode(uint32_t op)
                 default: assert(0);
             }
             break;
-        default: assert(0);
+        default: fprintf(stderr, "invalid opcode: %08x\n", opcode); assert(0);
     }
 
     fmt_t fmt;
@@ -683,9 +699,9 @@ reset()
     state.pc = 0;
 
     /* TODO: remove these; put them in the test itself */
-    state.regs[R_A1] = 5; // n 
-    state.regs[R_A0] = 0x54; // &a[0]
-    state.regs[R_RA] = 0x4c; // return address
+    //state.regs[R_A1] = 5; // n 
+    //state.regs[R_A0] = 0x54; // &a[0]
+    //state.regs[R_RA] = 0x4c; // return address
 }
 
 /* TODO: pc, x[0] potentially bug-prone */
@@ -921,6 +937,8 @@ step()
 
     state.pc = next_pc;
     x[0] = 0;
+
+    //getchar();
 
     return 0;
 }
