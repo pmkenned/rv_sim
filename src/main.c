@@ -9,186 +9,289 @@
 #define MASK_LSB_W(X, LSB, W) (X >> LSB) & ((1 << W) - 1)
 #define MASK_MSB_LSB(X, MSB, LSB) (X >> LSB) & ((1 << (MSB-LSB+1)) - 1)
 
-enum { MAX_STEPS = 100 };
+enum { MAX_STEPS = 100 }; // TODO: make this a command-line argument
+
+#define EXT_M  0
+#define EXT_FD 0
+#define EXT_C  1
+
+#define OPCODE_LIST_RV32I \
+    X(0x0000007f, 0x00000037, FMT_U,   MNEM_LUI,        "lui") \
+    X(0x0000007f, 0x00000017, FMT_U,   MNEM_AUIPC,      "auipc") \
+    X(0x0000007f, 0x0000006f, FMT_J,   MNEM_JAL,        "jal") \
+    X(0x0000707f, 0x00000067, FMT_I,   MNEM_JALR,       "jalr") \
+    X(0x0000707f, 0x00000063, FMT_B,   MNEM_BEQ,        "beq") \
+    X(0x0000707f, 0x00001063, FMT_B,   MNEM_BNE,        "bne") \
+    X(0x0000707f, 0x00004063, FMT_B,   MNEM_BLT,        "blt") \
+    X(0x0000707f, 0x00005063, FMT_B,   MNEM_BGE,        "bge") \
+    X(0x0000707f, 0x00006063, FMT_B,   MNEM_BLTU,       "bltu") \
+    X(0x0000707f, 0x00007063, FMT_B,   MNEM_BGEU,       "bgeu") \
+    X(0x0000707f, 0x00000003, FMT_I,   MNEM_LB,         "lb") \
+    X(0x0000707f, 0x00001003, FMT_I,   MNEM_LH,         "lh") \
+    X(0x0000707f, 0x00002003, FMT_I,   MNEM_LW,         "lw") \
+    X(0x0000707f, 0x00004003, FMT_I,   MNEM_LBU,        "lbu") \
+    X(0x0000707f, 0x00005003, FMT_I,   MNEM_LHU,        "lhu") \
+    X(0x0000707f, 0x00000023, FMT_S,   MNEM_SB,         "sb") \
+    X(0x0000707f, 0x00001023, FMT_S,   MNEM_SH,         "sh") \
+    X(0x0000707f, 0x00002023, FMT_S,   MNEM_SW,         "sw") \
+    X(0x0000707f, 0x00000013, FMT_I,   MNEM_ADDI,       "addi") \
+    X(0x0000707f, 0x00002013, FMT_I,   MNEM_SLTI,       "slti") \
+    X(0x0000707f, 0x00003013, FMT_I,   MNEM_SLTIU,      "sltiu") \
+    X(0x0000707f, 0x00004013, FMT_I,   MNEM_XORI,       "xori") \
+    X(0x0000707f, 0x00006013, FMT_I,   MNEM_ORI,        "ori") \
+    X(0x0000707f, 0x00007013, FMT_I,   MNEM_ANDI,       "andi") \
+    X(0xfe00707f, 0x00001013, FMT_I,   MNEM_SLLI,       "slli") \
+    X(0xfe00707f, 0x00005013, FMT_I,   MNEM_SRLI,       "srli") \
+    X(0xfe00707f, 0x40005013, FMT_I,   MNEM_SRAI,       "srai") \
+    X(0xfe00707f, 0x00000033, FMT_R,   MNEM_ADD,        "add") \
+    X(0xfe00707f, 0x40000033, FMT_R,   MNEM_SUB,        "sub") \
+    X(0xfe00707f, 0x00001033, FMT_R,   MNEM_SLL,        "sll") \
+    X(0xfe00707f, 0x00002033, FMT_R,   MNEM_SLT,        "slt") \
+    X(0xfe00707f, 0x00003033, FMT_R,   MNEM_SLTU,       "sltu") \
+    X(0xfe00707f, 0x00004033, FMT_R,   MNEM_XOR,        "xor") \
+    X(0xfe00707f, 0x00005033, FMT_R,   MNEM_SRL,        "srl") \
+    X(0xfe00707f, 0x40005033, FMT_R,   MNEM_SRA,        "sra") \
+    X(0xfe00707f, 0x00006033, FMT_R,   MNEM_OR,         "or") \
+    X(0xfe00707f, 0x00007033, FMT_R,   MNEM_AND,        "and") \
+    X(0xf00fffff, 0x0000000f, FMT_I,   MNEM_FENCE,      "fence") \
+    X(0xffffffff, 0x0000100f, FMT_I,   MNEM_FENCE_I,    "fence.i") \
+    X(0xffffffff, 0x00000073, FMT_I,   MNEM_ECALL,      "ecall") \
+    X(0xffffffff, 0x00100073, FMT_I,   MNEM_EBREAK,     "ebreak") \
+    X(0x0000707f, 0x00001073, FMT_I,   MNEM_CSRRW,      "csrrw") \
+    X(0x0000707f, 0x00002073, FMT_I,   MNEM_CSRRS,      "csrrs") \
+    X(0x0000707f, 0x00003073, FMT_I,   MNEM_CSRRC,      "csrrc") \
+    X(0x0000707f, 0x00005073, FMT_I,   MNEM_CSRRWI,     "csrrwi") \
+    X(0x0000707f, 0x00006073, FMT_I,   MNEM_CSRRSI,     "csrrsi") \
+    X(0x0000707f, 0x00007073, FMT_I,   MNEM_CSRRCI,     "csrrci")
+
+#if EXT_M
+#define OPCODE_LIST_M \
+    X(0xfe00707f, 0x02000033, FMT_R,   MNEM_MUL,        "mul") \
+    X(0xfe00707f, 0x02001033, FMT_R,   MNEM_MULH,       "mulh") \
+    X(0xfe00707f, 0x02002033, FMT_R,   MNEM_MULHSU,     "mulhsu") \
+    X(0xfe00707f, 0x02003033, FMT_R,   MNEM_MULHU,      "mulhu") \
+    X(0xfe00707f, 0x02004033, FMT_R,   MNEM_DIV,        "div") \
+    X(0xfe00707f, 0x02005033, FMT_R,   MNEM_DIVU,       "divu") \
+    X(0xfe00707f, 0x02006033, FMT_R,   MNEM_REM,        "rem") \
+    X(0xfe00707f, 0x02007033, FMT_R,   MNEM_REMU,       "remu")
+#else
+#define OPCODE_LIST_M
+#endif
+
+#if EXT_FD
+#define OPCODE_LIST_FD \
+    X(0x0000707f, 0x00002007, FMT_I,   MNEM_FLW,        "flw") \
+    X(0x0000707f, 0x00002027, FMT_S,   MNEM_FSW,        "fsw") \
+    X(0x0600007f, 0x00000043, FMT_R4,  MNEM_FMADD_S,    "fmadd.s") \
+    X(0x0600007f, 0x00000047, FMT_R4,  MNEM_FMSUB_S,    "fmsub.s") \
+    X(0x0600007f, 0x0000004b, FMT_R4,  MNEM_FNMSUB_S,   "fnmsub.s") \
+    X(0x0600007f, 0x0000004e, FMT_R4,  MNEM_FNMADD_S,   "fnmadd.s") \
+    X(0xfe00007f, 0x00000053, FMT_R,   MNEM_FADD_S,     "fadd.s") \
+    X(0xfe00007f, 0x08000053, FMT_R,   MNEM_FSUB_S,     "fsub.s") \
+    X(0xfe00007f, 0x10000053, FMT_R,   MNEM_FMUL_S,     "fmul.s") \
+    X(0xfe00007f, 0x18000053, FMT_R,   MNEM_FDIV_S,     "fdiv.s") \
+    X(0xfff0007f, 0x58000053, FMT_R,   MNEM_FSQRT_S,    "fsqrt.s") \
+    X(0xfe00707f, 0x20000053, FMT_R,   MNEM_FSGNJ_S,    "fsgnj.s") \
+    X(0xfe00707f, 0x20001053, FMT_R,   MNEM_FSGNJN_S,   "fsgnjn.s") \
+    X(0xfe00707f, 0x20002053, FMT_R,   MNEM_FSGNJX_S,   "fsgnjx.s") \
+    X(0xfe00707f, 0x28000053, FMT_R,   MNEM_FMIN_S,     "fmin.s") \
+    X(0xfe00707f, 0x28001053, FMT_R,   MNEM_FMAX_S,     "fmax.s") \
+    X(0xfff0007f, 0xc0000053, FMT_R,   MNEM_FCVT_W_S,   "fcvt.w.s") \
+    X(0xfff0007f, 0xc0100053, FMT_R,   MNEM_FCVT_WU_S,  "fcvt.wu.s") \
+    X(0xfff0707f, 0xe0000053, FMT_R,   MNEM_FMV_X_W,    "fmv.x.w") \
+    X(0xfe00707f, 0xa0002053, FMT_R,   MNEM_FEQ_S,      "feq.s") \
+    X(0xfe00707f, 0xa0001053, FMT_R,   MNEM_FLT_S,      "flt.s") \
+    X(0xfe00707f, 0xa0000053, FMT_R,   MNEM_FLE_S,      "fle.s") \
+    X(0xfff0707f, 0xe0001053, FMT_R,   MNEM_FCLASS_S,   "fclass.s") \
+    X(0xfff0007f, 0xd0000053, FMT_R,   MNEM_FCVT_S_W,   "fcvt.s.w") \
+    X(0xfff0007f, 0xd0100053, FMT_R,   MNEM_FCVT_S_WU,  "fcvt.s.wu") \
+    X(0xfff0707f, 0xe0000053, FMT_R,   MNEM_FMV_W_X,    "fmv.w.x") \
+    X(0x0000707f, 0x00003007, FMT_I,   MNEM_FLD,        "fld") \
+    X(0x0000707f, 0x00003027, FMT_S,   MNEM_FSD,        "fsd") \
+    X(0x0600007f, 0x02000043, FMT_R4,  MNEM_FMADD_D,    "fmadd.d") \
+    X(0x0600007f, 0x02000047, FMT_R4,  MNEM_FMSUB_D,    "fmsub.d") \
+    X(0x0600007f, 0x0200004b, FMT_R4,  MNEM_FNMSUB_D,   "fnmsub.d") \
+    X(0x0600007f, 0x0200004f, FMT_R4,  MNEM_FNMADD_D,   "fnmadd.d") \
+    X(0xfe00007f, 0x02000053, FMT_R,   MNEM_FADD_D,     "fadd.d") \
+    X(0xfe00007f, 0x0a000053, FMT_R,   MNEM_FSUB_D,     "fsub.d") \
+    X(0xfe00007f, 0x12000053, FMT_R,   MNEM_FMUL_D,     "fmul.d") \
+    X(0xfe00007f, 0x1a000053, FMT_R,   MNEM_FDIV_D,     "fdiv.d") \
+    X(0xfff0007f, 0x5a000053, FMT_R,   MNEM_FSQRT_D,    "fsqrt.d") \
+    X(0xfe00707f, 0x22000053, FMT_R,   MNEM_FSGNJ_D,    "fsgnj.d") \
+    X(0xfe00707f, 0x22001053, FMT_R,   MNEM_FSGNJN_D,   "fsgnjn.d") \
+    X(0xfe00707f, 0x22002053, FMT_R,   MNEM_FSGNJX_D,   "fsgnjx.d") \
+    X(0xfe00707f, 0x2a000053, FMT_R,   MNEM_FMIN_D,     "fmin.d") \
+    X(0xfe00707f, 0x2a001053, FMT_R,   MNEM_FMAX_D,     "fmax.d") \
+    X(0xfff0007f, 0x40100053, FMT_R,   MNEM_FCVT_S_D,   "fcvt.s.d") \
+    X(0xfff0007f, 0x42000053, FMT_R,   MNEM_FCVT_D_S,   "fcvt.d.s") \
+    X(0xfe00707f, 0xa2002053, FMT_R,   MNEM_FEQ_D,      "feq.d") \
+    X(0xfe00707f, 0xa2001053, FMT_R,   MNEM_FLT_D,      "flt.d") \
+    X(0xfe00707f, 0xa2000053, FMT_R,   MNEM_FLE_D,      "fle.d") \
+    X(0xfff0707f, 0xe2001053, FMT_R,   MNEM_FCLASS_D,   "fclass.d") \
+    X(0xfff0007f, 0xc2000053, FMT_R,   MNEM_FCVT_W_D,   "fcvt.w.d") \
+    X(0xfff0007f, 0xc2100053, FMT_R,   MNEM_FCVT_WU_D,  "fcvt.wu.d") \
+    X(0xfff0007f, 0xd2000053, FMT_R,   MNEM_FCVT_D_W,   "fcvt.d.w") \
+    X(0xfff0007f, 0xd2100053, FMT_R,   MNEM_FCVT_D_WU,  "fcvt.d.wu")
+#else
+#define OPCODE_LIST_FD
+#endif
+
+#if EXT_A
+#define OPCODE_LIST_A \
+    X(0xf9f0707f, 0x1000202f, FMT_R,   MNEM_LR_W,       "lr.w") \
+    X(0xf800707f, 0x1800202f, FMT_R,   MNEM_SC_W,       "sc.w") \
+    X(0xf800707f, 0x0800202f, FMT_R,   MNEM_AMOSWAP_W,  "amoswap.w") \
+    X(0xf800707f, 0x0000202f, FMT_R,   MNEM_AMOADD_W,   "amoadd.w") \
+    X(0xf800707f, 0x2000202f, FMT_R,   MNEM_AMOXOR_W,   "amoxor.w") \
+    X(0xf800707f, 0x6000202f, FMT_R,   MNEM_AMOAND_W,   "amoand.w") \
+    X(0xf800707f, 0x4000202f, FMT_R,   MNEM_AMOOR_W,    "amoor.w") \
+    X(0xf800707f, 0x8000202f, FMT_R,   MNEM_AMOMIN_W,   "amomin.w") \
+    X(0xf800707f, 0xa000202f, FMT_R,   MNEM_AMOMAX_W,   "amomax.w") \
+    X(0xf800707f, 0xc000202f, FMT_R,   MNEM_AMOMINU_W,  "amominu.w") \
+    X(0xf800707f, 0xe000202f, FMT_R,   MNEM_AMOMAXU_W,  "amomaxu.w")
+#else
+#define OPCODE_LIST_A
+#endif
+
+#if EXT_C
+#define OPCODE_LIST_C \
+    X(0xef83,     0x0001,     FMT_CI,  MNEM_C_NOP,      "c.nop") \
+    X(0xe003,     0x0001,     FMT_CI,  MNEM_C_ADDI,     "c.addi") \
+    X(0xe003,     0x2001,     FMT_CJ,  MNEM_C_JAL,      "c.jal") \
+    X(0xe003,     0x4001,     FMT_CI,  MNEM_C_LI,       "c.li") \
+    X(0xef83,     0x6101,     FMT_CI,  MNEM_C_ADDI16SP, "c.addi16sp") \
+    X(0xe003,     0x6001,     FMT_CI,  MNEM_C_LUI,      "c.lui") \
+    X(0xec03,     0x8001,     FMT_CI,  MNEM_C_SRLI,     "c.srli") \
+    X(0xec03,     0x8401,     FMT_CI,  MNEM_C_SRAI,     "c.srai") \
+    X(0xec03,     0x8801,     FMT_CI,  MNEM_C_ANDI,     "c.andi") \
+    X(0xfc63,     0x8c01,     FMT_CR,  MNEM_C_SUB,      "c.sub") \
+    X(0xfc63,     0x8c21,     FMT_CR,  MNEM_C_XOR,      "c.xor") \
+    X(0xfc63,     0x8c41,     FMT_CR,  MNEM_C_OR,       "c.or") \
+    X(0xfc63,     0x8c61,     FMT_CR,  MNEM_C_AND,      "c.and") \
+    X(0xe003,     0xa001,     FMT_CJ,  MNEM_C_J,        "c.j") \
+    X(0xe003,     0xc001,     FMT_CB,  MNEM_C_BEQZ,     "c.beqz") \
+    X(0xe003,     0xe001,     FMT_CB,  MNEM_C_BNEZ,     "c.bnez") \
+    X(0xffff,     0x0000,     FMT_CIW, MNEM_C_ILLEGAL,  "Illegal instruction") \
+    X(0xe003,     0x0000,     FMT_CIW, MNEM_C_ADDI4SPN, "c.addi4spn") \
+    X(0xe003,     0x2000,     FMT_CL,  MNEM_C_FLD,      "c.fld") \
+    X(0xe003,     0x4000,     FMT_CL,  MNEM_C_LW,       "c.lw") \
+    X(0xe003,     0x6000,     FMT_CL,  MNEM_C_FLW,      "c.flw") \
+    X(0xe003,     0xa000,     FMT_CL,  MNEM_C_FSD,      "c.fsd") \
+    X(0xe003,     0xc000,     FMT_CL,  MNEM_C_SW,       "c.sw") \
+    X(0xe003,     0xe000,     FMT_CL,  MNEM_C_FSW,      "c.fsw") \
+    X(0xe003,     0x0002,     FMT_CI,  MNEM_C_SLLI,     "c.slli") \
+    X(0xf07f,     0x0002,     FMT_CI,  MNEM_C_SLLI64,   "c.slli64") \
+    X(0xe003,     0x2002,     FMT_CSS, MNEM_C_FLDSP,    "c.fldsp") \
+    X(0xe003,     0x3002,     FMT_CSS, MNEM_C_LWSP,     "c.lwsp") \
+    X(0xe003,     0x6002,     FMT_CSS, MNEM_C_FLWSP,    "c.flwsp") \
+    X(0xf07f,     0x8002,     FMT_CJ,  MNEM_C_JR,       "c.jr") \
+    X(0xf003,     0x8002,     FMT_CR,  MNEM_C_MV,       "c.mv") \
+    X(0xffff,     0x9002,     FMT_CI,  MNEM_C_EBREAK,   "c.ebreak") \
+    X(0xf07f,     0x9002,     FMT_CJ,  MNEM_C_JALR,     "c.jalr") \
+    X(0xf003,     0x9002,     FMT_CR,  MNEM_C_ADD,      "c.add") \
+    X(0xe003,     0xa002,     FMT_CSS, MNEM_C_FSDSP,    "c.fsdsp") \
+    X(0xe003,     0xc002,     FMT_CSS, MNEM_C_SWSP,     "c.swsp") \
+    X(0xe003,     0xe002,     FMT_CSS, MNEM_C_FSWSP,    "c.fswsp")
+#else
+#define OPCODE_LIST_C
+#endif
+
+// TODO: vector
+// TODO: 64-bit
+
+#if EXT_PRIV
+#define OPCODE_LIST_PRIV \
+    X(0xffffffff, 0x10200073, FMT_R,   MNEM_SRET,       "sret") \
+    X(0xffffffff, 0x30200073, FMT_R,   MNEM_MRET,       "mret") \
+    X(0xffffffff, 0x10500073, FMT_R,   MNEM_WFI,        "wfi") \
+    X(0xfe007fff, 0x12000073, FMT_R,   MNEM_SFENCE_VMA, "sfence.vma")
+#else
+#define OPCODE_LIST_PRIV
+#endif
+
+#define OPCODE_LIST \
+    OPCODE_LIST_RV32I \
+    OPCODE_LIST_M \
+    OPCODE_LIST_FD \
+    OPCODE_LIST_A \
+    OPCODE_LIST_C \
+    OPCODE_LIST_PRIV
+
+#define REG_LIST \
+    X(R_RA = 1, "x0") \
+    X(R_SP,     "ra") \
+    X(R_GP,     "sp") \
+    X(R_TP,     "gp") \
+    X(R_T0,     "tp") \
+    X(R_T1,     "t0") \
+    X(R_T2,     "t1") \
+    X(R_S0,     "t2") \
+    X(R_FP = 8, "fp") \
+    X(R_S1,     "s1") \
+    X(R_A0,     "a0") \
+    X(R_A1,     "a1") \
+    X(R_A2,     "a2") \
+    X(R_A3,     "a3") \
+    X(R_A4,     "a4") \
+    X(R_A5,     "a5") \
+    X(R_A6,     "a6") \
+    X(R_A7,     "a7") \
+    X(R_S2,     "s2") \
+    X(R_S3,     "s3") \
+    X(R_S4,     "s4") \
+    X(R_S5,     "s5") \
+    X(R_S6,     "s6") \
+    X(R_S7,     "s7") \
+    X(R_S8,     "s8") \
+    X(R_S9,     "s9") \
+    X(R_S10,    "s10") \
+    X(R_S11,    "s11") \
+    X(R_T3,     "t3") \
+    X(R_T4,     "t4") \
+    X(R_T5,     "t5") \
+    X(R_T6,     "t6")
 
 enum {
-    R_RA = 1,
-    R_SP,
-    R_GP,
-    R_TP,
-    R_T0,
-    R_T1,
-    R_T2,
-    R_S0,
-    R_FP = 8,
-    R_S1,
-    R_A0,
-    R_A1,
-    R_A2,
-    R_A3,
-    R_A4,
-    R_A5,
-    R_A6,
-    R_A7,
-    R_S2,
-    R_S3,
-    R_S4,
-    R_S5,
-    R_S6,
-    R_S7,
-    R_S8,
-    R_S9,
-    R_S10,
-    R_S11,
-    R_T3,
-    R_T4,
-    R_T5,
-    R_T6,
+    #define X(ENUM, STR) ENUM,
+    REG_LIST
+    #undef X
+};
+
+const char * reg_names[] = {
+    #define X(ENUM, STR) STR,
+    REG_LIST
+    #undef X
+};
+
+typedef enum {
+    MNEM_INVALID,
+    #define X(MASK, VALUE, FMT, MNEM, STR) MNEM,
+    OPCODE_LIST
+    #undef X
+} mnemonic_t;
+
+const char * op_mnemonics[] = {
+    #define X(MASK, VALUE, FMT, MNEM, STR) STR,
+    OPCODE_LIST
+    #undef X
 };
 
 typedef enum {
     FMT_R,
+    FMT_R4,
     FMT_I,
     FMT_S,
     FMT_B,
     FMT_U,
-    FMT_J
+    FMT_J,
+    FMT_CB,
+    FMT_CI,
+    FMT_CIW,
+    FMT_CJ,
+    FMT_CL,
+    FMT_CR,
+    FMT_CSS
 } fmt_t;
-
-typedef enum {
-    MNEM_LUI,
-    MNEM_AUIPC,
-    MNEM_JAL,
-    MNEM_JALR,
-    MNEM_BEQ,
-    MNEM_BNE,
-    MNEM_BLT,
-    MNEM_BGE,
-    MNEM_BLTU,
-    MNEM_BGEU,
-    MNEM_LB,
-    MNEM_LH,
-    MNEM_LW,
-    MNEM_LBU,
-    MNEM_LHU,
-    MNEM_SB,
-    MNEM_SH,
-    MNEM_SW,
-    MNEM_ADDI,
-    MNEM_SLTI,
-    MNEM_SLTIU,
-    MNEM_XORI,
-    MNEM_ORI,
-    MNEM_ANDI,
-    MNEM_SLLI,
-    MNEM_SRLI,
-    MNEM_SRAI,
-    MNEM_ADD,
-    MNEM_SUB,
-    MNEM_SLL,
-    MNEM_SLT,
-    MNEM_SLTU,
-    MNEM_XOR,
-    MNEM_SRL,
-    MNEM_SRA,
-    MNEM_OR,
-    MNEM_AND,
-    MNEM_FENCE,
-    MNEM_FENCE_I,
-    MNEM_ECALL,
-    MNEM_EBREAK,
-    MNEM_CSRRW,
-    MNEM_CSRRS,
-    MNEM_CSRRC,
-    MNEM_CSRRWI,
-    MNEM_CSRRSI,
-    MNEM_CSRRCI
-} mnemonic_t;
-
-const char * op_mnemonics[] = {
-    "lui",
-    "auipc",
-    "jal",
-    "jalr",
-    "beq",
-    "bne",
-    "blt",
-    "bge",
-    "bltu",
-    "bgeu",
-    "lb",
-    "lh",
-    "lw",
-    "lbu",
-    "lhu",
-    "sb",
-    "sh",
-    "sw",
-    "addi",
-    "slti",
-    "sltiu",
-    "xori",
-    "ori",
-    "andi",
-    "slli",
-    "srli",
-    "srai",
-    "add",
-    "sub",
-    "sll",
-    "slt",
-    "sltu",
-    "xor",
-    "srl",
-    "sra",
-    "or",
-    "and",
-    "fence",
-    "fence.i",
-    "ecall",
-    "ebreak",
-    "csrrw",
-    "csrrs",
-    "csrrc",
-    "csrrwi",
-    "csrrsi",
-    "csrrci"
-};
-
-const char * reg_names[] = {
-    "x0",
-    "ra",
-    "sp",
-    "gp",
-    "tp",
-    "t0",
-    "t1",
-    "t2",
-    "fp",
-    "s1",
-    "a0",
-    "a1",
-    "a2",
-    "a3",
-    "a4",
-    "a5",
-    "a6",
-    "a7",
-    "s2",
-    "s3",
-    "s4",
-    "s5",
-    "s6",
-    "s7",
-    "s8",
-    "s9",
-    "s10",
-    "s11",
-    "t3",
-    "t4",
-    "t5",
-    "t6"
-};
 
 typedef struct {
     fmt_t format;
@@ -418,9 +521,16 @@ snprint_instr(char * str, size_t size, instr_t * i_p)
             imm = get_imm(i_p);
             n = snprintf(str, size, "%s %s,%d", mnemonic, rd, imm);
             break;
-        default:
-            assert(0);
-            break;
+        // TODO
+        case FMT_R4: assert(0); break;
+        case FMT_CB: assert(0); break;
+        case FMT_CI: assert(0); break;
+        case FMT_CIW: assert(0); break;
+        case FMT_CJ: assert(0); break;
+        case FMT_CL: assert(0); break;
+        case FMT_CR: assert(0); break;
+        case FMT_CSS: assert(0); break;
+        default: assert(0); break;
     }
     return n;
 }
@@ -441,7 +551,6 @@ decode(uint32_t op)
 
     instr_header_t * header_p = (instr_header_t *) &output;
 
-    int opcode      = MASK_MSB_LSB(op, 6, 0);
     int rd          = MASK_MSB_LSB(op, 11, 7);
     int rs1         = MASK_MSB_LSB(op, 19, 15);
     int rs2         = MASK_MSB_LSB(op, 24, 20);
@@ -460,174 +569,21 @@ decode(uint32_t op)
     int imm_10_1    = MASK_MSB_LSB(op, 30, 21);
     int imm_20      = MASK_MSB_LSB(op, 31, 31);
 
-    mnemonic_t m;
+    mnemonic_t m = MNEM_INVALID;;
 
-    switch (opcode) {
-        case 0067: m = MNEM_LUI; break;
-        case 0027: m = MNEM_AUIPC; break;
-        case 0157: m = MNEM_JAL; break;
-        case 0147:
-            switch (func3) {
-                case 0: m = MNEM_JALR; break;
-                default: assert(0);
-            }
-            break;
-        case 0143:
-            switch (func3) {
-                case 0: m = MNEM_BEQ; break;
-                case 1: m = MNEM_BNE; break;
-                case 4: m = MNEM_BLT; break;
-                case 5: m = MNEM_BGE; break;
-                case 6: m = MNEM_BLTU; break;
-                case 7: m = MNEM_BGEU; break;
-                default: assert(0);
-            }
-            break;
-        case 0003:
-            switch (func3) {
-                case 0: m = MNEM_LB; break;
-                case 1: m = MNEM_LH; break;
-                case 2: m = MNEM_LW; break;
-                case 4: m = MNEM_LBU; break;
-                case 5: m = MNEM_LHU; break;
-                default: assert(0);
-            }
-            break;
-        case 0043:
-            switch (func3) {
-                case 0: m = MNEM_SB; break;
-                case 1: m = MNEM_SH; break;
-                case 2: m = MNEM_SW; break;
-                default: assert(0);
-            }
-            break;
-        case 0023:
-            switch (func3) {
-                case 0: m = MNEM_ADDI; break;
-                case 2: m = MNEM_SLTI; break;
-                case 3: m = MNEM_SLTIU; break;
-                case 4: m = MNEM_XORI; break;
-                case 6: m = MNEM_ORI; break;
-                case 7: m = MNEM_ANDI; break;
-                case 1:
-                    switch (func7) {
-                        case 0: m = MNEM_SLLI; break;
-                        default: assert(0);
-                    }
-                    break;
-                case 5:
-                    switch (func7) {
-                        case 0: m = MNEM_SRLI; break;
-                        case 32: m = MNEM_SRAI; break;
-                        default: assert(0);
-                    }
-                    break;
-                default: assert(0);
-            }
-            break;
-        case 0063:
-            switch (func3) {
-                case 0:
-                    switch (func7) {
-                        case 0: m = MNEM_ADD; break;
-                        case 32: m = MNEM_SUB; break;
-                        default: assert(0);
-                    }
-                    break;
-                case 1: m = MNEM_SLL; break;
-                case 2: m = MNEM_SLT; break;
-                case 3: m = MNEM_SLTU; break;
-                case 4: m = MNEM_XOR; break;
-                case 5:
-                    switch (func7) {
-                        case 0: m = MNEM_SRL; break;
-                        case 32: m = MNEM_SRA; break;
-                        default: assert(0);
-                    }
-                    break;
-                case 6: m = MNEM_OR; break;
-                case 7: m = MNEM_AND; break;
-                default: assert(0);
-            }
-            break;
-        case 0017:
-            switch (func3) {
-                case 0: m = MNEM_FENCE; break;
-                case 1: m = MNEM_FENCE_I; break;
-                default: assert(0);
-            }
-            break;
-        case 0163:
-            switch (func3) {
-                case 0:
-                    switch (imm_11_0) {
-                        case 0: m = MNEM_ECALL; break;
-                        case 1: m = MNEM_EBREAK; break;
-                        default: assert(0);
-                    }
-                    break;
-                case 1: m = MNEM_CSRRW; break;
-                case 2: m = MNEM_CSRRS; break;
-                case 3: m = MNEM_CSRRC; break;
-                case 5: m = MNEM_CSRRWI; break;
-                case 6: m = MNEM_CSRRSI; break;
-                case 7: m = MNEM_CSRRCI; break;
-                default: assert(0);
-            }
-            break;
-        default: fprintf(stderr, "invalid opcode: %08x\n", opcode); assert(0);
-    }
+    if (0) ;
+    #define X(MASK, VALUE, FMT, MNEM, STR) \
+        else if ((op & MASK) == VALUE) m = MNEM;
+    OPCODE_LIST
+    #undef X
 
     fmt_t fmt;
 
     switch (m) {
-        case MNEM_LUI:      fmt = FMT_U; break;
-        case MNEM_AUIPC:    fmt = FMT_U; break;
-        case MNEM_JAL:      fmt = FMT_J; break;
-        case MNEM_JALR:     fmt = FMT_I; break;
-        case MNEM_BEQ:      fmt = FMT_B; break;
-        case MNEM_BNE:      fmt = FMT_B; break;
-        case MNEM_BLT:      fmt = FMT_B; break;
-        case MNEM_BGE:      fmt = FMT_B; break;
-        case MNEM_BLTU:     fmt = FMT_B; break;
-        case MNEM_BGEU:     fmt = FMT_B; break;
-        case MNEM_LB:       fmt = FMT_I; break;
-        case MNEM_LH:       fmt = FMT_I; break;
-        case MNEM_LW:       fmt = FMT_I; break;
-        case MNEM_LBU:      fmt = FMT_I; break;
-        case MNEM_LHU:      fmt = FMT_I; break;
-        case MNEM_SB:       fmt = FMT_S; break;
-        case MNEM_SH:       fmt = FMT_S; break;
-        case MNEM_SW:       fmt = FMT_S; break;
-        case MNEM_ADDI:     fmt = FMT_I; break;
-        case MNEM_SLTI:     fmt = FMT_I; break;
-        case MNEM_SLTIU:    fmt = FMT_I; break;
-        case MNEM_XORI:     fmt = FMT_I; break;
-        case MNEM_ORI:      fmt = FMT_I; break;
-        case MNEM_ANDI:     fmt = FMT_I; break;
-        case MNEM_SLLI:     fmt = FMT_I; break;
-        case MNEM_SRLI:     fmt = FMT_I; break;
-        case MNEM_SRAI:     fmt = FMT_I; break;
-        case MNEM_ADD:      fmt = FMT_R; break;
-        case MNEM_SUB:      fmt = FMT_R; break;
-        case MNEM_SLL:      fmt = FMT_R; break;
-        case MNEM_SLT:      fmt = FMT_R; break;
-        case MNEM_SLTU:     fmt = FMT_R; break;
-        case MNEM_XOR:      fmt = FMT_R; break;
-        case MNEM_SRL:      fmt = FMT_R; break;
-        case MNEM_SRA:      fmt = FMT_R; break;
-        case MNEM_OR:       fmt = FMT_R; break;
-        case MNEM_AND:      fmt = FMT_R; break;
-        case MNEM_FENCE:    fmt = FMT_I; break;
-        case MNEM_FENCE_I:  fmt = FMT_I; break;
-        case MNEM_ECALL:    fmt = FMT_I; break;
-        case MNEM_EBREAK:   fmt = FMT_I; break;
-        case MNEM_CSRRW:    fmt = FMT_I; break;
-        case MNEM_CSRRS:    fmt = FMT_I; break;
-        case MNEM_CSRRC:    fmt = FMT_I; break;
-        case MNEM_CSRRWI:   fmt = FMT_I; break;
-        case MNEM_CSRRSI:   fmt = FMT_I; break;
-        case MNEM_CSRRCI:   fmt = FMT_I; break;
+    #define X(MASK, VALUE, FMT, MNEM, STR) \
+        case MNEM:  fmt = FMT; break;
+        OPCODE_LIST
+    #undef X
         default: assert(0); break;
     }
 
@@ -680,6 +636,16 @@ decode(uint32_t op)
             output.ji.imm_20 = imm_20;
             break;
 
+        // TODO
+        case FMT_R4: assert(0); break;
+        case FMT_CB: assert(0); break;
+        case FMT_CI: assert(0); break;
+        case FMT_CIW: assert(0); break;
+        case FMT_CJ: assert(0); break;
+        case FMT_CL: assert(0); break;
+        case FMT_CR: assert(0); break;
+        case FMT_CSS: assert(0); break;
+
         default:
             assert(0);
             break;
@@ -699,9 +665,9 @@ reset()
     state.pc = 0;
 
     /* TODO: remove these; put them in the test itself */
-    //state.regs[R_A1] = 5; // n 
-    //state.regs[R_A0] = 0x54; // &a[0]
-    //state.regs[R_RA] = 0x4c; // return address
+    state.regs[R_A1] = 5; // n 
+    state.regs[R_A0] = 0x54; // &a[0]
+    state.regs[R_RA] = 0x4c; // return address
 }
 
 /* TODO: pc, x[0] potentially bug-prone */
@@ -709,13 +675,17 @@ static int
 step()
 {
     uint32_t op = M_r(state.pc, 4);
+    // compressed
+    int compressed = (op & 3 != 3);
+    if (compressed)
+        op &= 0xffff;
     instr_t instr = decode(op);
     instr_header_t * header_p = (instr_header_t *) &instr;
 
     int32_t * x = (int32_t *) state.regs;
     uint32_t * x_u = state.regs;
     uint32_t pc = state.pc;
-    uint32_t next_pc = pc + 4;
+    uint32_t next_pc = pc + (compressed ? 2 : 4);
 
     int rd;
     int rs1;
@@ -729,10 +699,6 @@ step()
     int succ;
     int csr;
     int zimm;
-
-    char buffer[1024];
-    snprint_instr(buffer, sizeof(buffer), &instr);
-    printf("%08x: %08x ; %s\n", (int) pc, op, buffer);
 
     switch (header_p->format) {
         case FMT_R:
@@ -772,132 +738,194 @@ step()
             imm = get_imm(&instr);
             imm_u = (uint32_t) imm;
             break;
+        // TODO
+        case FMT_R4: assert(0); break;
+        case FMT_CB: assert(0); break;
+        case FMT_CI: assert(0); break;
+        case FMT_CIW: assert(0); break;
+        case FMT_CJ: assert(0); break;
+        case FMT_CL: assert(0); break;
+        case FMT_CR: assert(0); break;
+        case FMT_CSS: assert(0); break;
         default:
             assert(0);
             break;
     }
 
+    int xd_set = 0;
+    int write = 0;
+    int load = 0;
+    int br_taken = 0;
+
     switch (header_p->mnemonic) {
         case MNEM_LUI:
             x[rd] = imm;
+            xd_set = 1;
             break;
         case MNEM_AUIPC:
             x[rd] = pc + imm;
+            xd_set = 1;
             break;
         case MNEM_JAL:
             x[rd] = pc + 4;
             next_pc = pc + imm;
+            br_taken = 1;
+            xd_set = 1;
             break;
         case MNEM_JALR:
             t = pc + 4;
             next_pc = (x[rs1] + imm) & ~1;
+            br_taken = 1;
             x[rd] = t;
+            xd_set = 1;
             break;
         case MNEM_BEQ:
-            if (x[rs1] == x[rs2])
+            if (x[rs1] == x[rs2]) {
                 next_pc = pc + imm;
+                br_taken = 1;
+            }
             break;
         case MNEM_BNE:
-            if (x[rs1] != x[rs2])
+            if (x[rs1] != x[rs2]) {
                 next_pc = pc + imm;
+                br_taken = 1;
+            }
             break;
         case MNEM_BLT:
-            if (x[rs1] < x[rs2])
+            if (x[rs1] < x[rs2]) {
                 next_pc = pc + imm;
+                br_taken = 1;
+            }
             break;
         case MNEM_BGE:
-            if (x[rs1] >= x[rs2])
+            if (x[rs1] >= x[rs2]) {
                 next_pc = pc + imm;
+                br_taken = 1;
+            }
             break;
         case MNEM_BLTU:
-            if (x_u[rs1] < x_u[rs2])
+            if (x_u[rs1] < x_u[rs2]) {
                 next_pc = pc + imm;
+                br_taken = 1;
+            }
             break;
         case MNEM_BGEU:
-            if (x_u[rs1] >= x_u[rs2])
+            if (x_u[rs1] >= x_u[rs2]) {
                 next_pc = pc + imm;
+                br_taken = 1;
+            }
             break;
         case MNEM_LB:
             x[rd] = sext(M_r(x[rs1] + imm, 1),8);
+            xd_set = 1;
+            load = 1;
             break;
         case MNEM_LH:
             x[rd] = sext(M_r(x[rs1] + imm, 2),16);
+            xd_set = 1;
+            load = 1;
             break;
         case MNEM_LW:
             x[rd] = sext(M_r(x[rs1] + imm, 4),32);
+            xd_set = 1;
+            load = 1;
             break;
         case MNEM_LBU:
             x[rd] = M_r(x[rs1] + imm, 1);
+            xd_set = 1;
             break;
         case MNEM_LHU:
             x[rd] = M_r(x[rs1] + imm, 2);
+            xd_set = 1;
             break;
         case MNEM_SB:
             M_w(x[rs1] + imm, x[rs2], 1);
+            write = 1;
             break;
         case MNEM_SH:
             M_w(x[rs1] + imm, x[rs2], 2);
+            write = 1;
             break;
         case MNEM_SW:
             M_w(x[rs1] + imm, x[rs2], 4);
+            write = 1;
             break;
         case MNEM_ADDI:
             x[rd] = x[rs1] + imm;
+            xd_set = 1;
             break;
         case MNEM_SLTI:
             x[rd] = x[rs1] < imm;
+            xd_set = 1;
             break;
         case MNEM_SLTIU:
             x[rd] = x_u[rs1] < imm_u;
+            xd_set = 1;
             break;
         case MNEM_XORI:
             x[rd] = x[rs1] ^ imm;
+            xd_set = 1;
             break;
         case MNEM_ORI:
             x[rd] = x[rs1] | imm;
+            xd_set = 1;
             break;
         case MNEM_ANDI:
             x[rd] = x[rs1] & imm;
+            xd_set = 1;
             break;
         case MNEM_SLLI:
             x[rd] = x[rs1] << shamt;
+            xd_set = 1;
             break;
         case MNEM_SRLI:
             /* TODO: add static assertion that right-shifting of signed value is arithmetic */
             x[rd] = x_u[rs1] >> shamt;
+            xd_set = 1;
             break;
         case MNEM_SRAI:
             x[rd] = x[rs1] >> shamt;
+            xd_set = 1;
             break;
         case MNEM_ADD:
             x[rd] = x[rs1] + x[rs2];
+            xd_set = 1;
             break;
         case MNEM_SUB:
             x[rd] = x[rs1] - x[rs2];
+            xd_set = 1;
             break;
         case MNEM_SLL:
             x[rd] = x[rs1] << x[rs2];
+            xd_set = 1;
             break;
         case MNEM_SLT:
             x[rd] = x[rs1] < x[rs2];
+            xd_set = 1;
             break;
         case MNEM_SLTU:
             x[rd] = x_u[rs1] < x_u[rs2];
+            xd_set = 1;
             break;
         case MNEM_XOR:
             x[rd] = x[rs1] ^ x[rs1];
+            xd_set = 1;
             break;
         case MNEM_SRL:
             x[rd] = x_u[rs1] >> x_u[rs2];
+            xd_set = 1;
             break;
         case MNEM_SRA:
             x[rd] = x[rs1] >> x[rs2];
+            xd_set = 1;
             break;
         case MNEM_OR:
             x[rd] = x[rs1] | x[rs1];
+            xd_set = 1;
             break;
         case MNEM_AND:
             x[rd] = x[rs1] & x[rs1];
+            xd_set = 1;
             break;
         case MNEM_FENCE:
             /* TODO */
@@ -934,6 +962,21 @@ step()
             assert(0);
             break;
     }
+
+    char buffer[1024];
+    int len = snprint_instr(buffer, sizeof(buffer), &instr);
+    printf("%08x: %08x ; %s", (int) pc, op, buffer);
+    for (int i = 0; i < 20 - len; i++)
+        printf(" ");
+    if (br_taken)
+        printf("[branch]");
+    if (xd_set)
+        printf(" x[%d] <= %d", rd, x[rd]);
+    if (write)
+        printf("    M[%x] = %x", x[rs1] + imm, x[rs2]);
+    if (load)
+        printf("    M[%x]", x[rs1] + imm);
+    printf("\n");
 
     state.pc = next_pc;
     x[0] = 0;

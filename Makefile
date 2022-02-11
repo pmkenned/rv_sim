@@ -20,6 +20,7 @@ DEP = $(OBJ:%.o=%.d)
 
 all: $(BUILD_DIR)/$(TARGET)
 
+PROG ?= ./hex/insert_sort.hex
 run: $(BUILD_DIR)/$(TARGET)
 	$(BUILD_DIR)/$(TARGET) $(PROG)
 
