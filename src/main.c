@@ -218,14 +218,15 @@ enum { MAX_STEPS = 100 }; // TODO: make this a command-line argument
     OPCODE_LIST_PRIV
 
 #define REG_LIST \
-    X(R_RA = 1, "x0") \
-    X(R_SP,     "ra") \
-    X(R_GP,     "sp") \
-    X(R_TP,     "gp") \
-    X(R_T0,     "tp") \
-    X(R_T1,     "t0") \
-    X(R_T2,     "t1") \
-    X(R_S0,     "t2") \
+    X(R_X0,     "x0") \
+    X(R_RA,     "ra") \
+    X(R_SP,     "sp") \
+    X(R_GP,     "gp") \
+    X(R_TP,     "tp") \
+    X(R_T0,     "t0") \
+    X(R_T1,     "t1") \
+    X(R_T2,     "t2") \
+    X(R_S0,     "s0") \
     X(R_FP = 8, "fp") \
     X(R_S1,     "s1") \
     X(R_A0,     "a0") \
