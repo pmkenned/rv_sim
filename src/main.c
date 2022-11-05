@@ -265,10 +265,10 @@ const char * reg_names[] = {
 };
 
 typedef enum {
-    MNEM_INVALID,
     #define X(MASK, VALUE, FMT, MNEM, STR) MNEM,
     OPCODE_LIST
     #undef X
+    MNEM_INVALID
 } mnemonic_t;
 
 const char * op_mnemonics[] = {
@@ -373,59 +373,44 @@ uint32_t memory[256];
 uint32_t
 M_r(uint32_t addr, int size)
 {
-    uint32_t data;
     addr %= 1024;
-    if (size == 1) {
-        uint32_t x = memory[addr/4];
-        if      (addr % 4 == 0) { data = (x & 0xff); }
-        else if (addr % 4 == 1) { data = (x & 0xff00) >> 8; }
-        else if (addr % 4 == 2) { data = (x & 0xff0000) >> 16; }
-        else if (addr % 4 == 3) { data = (x & 0xff000000) >> 24; }
-    } else if (size == 2) {
-        uint32_t x = memory[addr/4];
-        if      (addr % 4 == 0) { data = (x & 0xffff); }
-        else if (addr % 4 == 2) { data = (x & 0xffff0000) >> 16; }
-        else {
-            fprintf(stderr, "error: unaligned read access, addr = %08x, size = %d\n", addr, size);
-            assert(0);
-        }
-    } else if (size == 4) {
-        if (addr % 4 != 0) {
-            fprintf(stderr, "error: unaligned read access, addr = %08x, size = %d\n", addr, size);
-        }
-        assert(addr % 4 == 0);
-        data = memory[addr/4];
+
+    if (addr % size != 0) {
+        fprintf(stderr, "error: unaligned read access, addr = 0x%08x, size = %d\n", addr, size);
+        exit(EXIT_FAILURE);
     }
+
+    uint32_t word = memory[addr/4];
+    uint32_t data;
+    if (size == 1)
+        data = (word >> (addr % 4)*8) & 0xff;
+    else if (size == 2)
+        data = (word >> (addr % 4)*8) & 0xffff;
+    else if (size == 4)
+        data = word;
     return data;
 }
 
 void
 M_w(uint32_t addr, uint32_t data, int size)
 {
-    addr %= 1024;
-    if (size == 1) {
-        uint32_t x = memory[addr/4];
-        if      (addr % 4 == 0) { x = (x & 0xffffff00) | (data & 0xff); }
-        else if (addr % 4 == 1) { x = (x & 0xffff00ff) | ((data & 0xff) >> 8); }
-        else if (addr % 4 == 2) { x = (x & 0xff00ffff) | ((data & 0xff) >> 16); }
-        else if (addr % 4 == 3) { x = (x & 0x00ffffff) | ((data & 0xff) >> 24); }
-        memory[addr/4] = x;
-    } else if (size == 2) {
-        uint32_t x = memory[addr/4];
-        if      (addr % 4 == 0) { x = (x & 0xffff0000) | (data & 0xffff); }
-        else if (addr % 4 == 2) { x = (x & 0x0000ffff) | ((data & 0xffff) >> 16); }
-        else {
-            fprintf(stderr, "error: unaligned write access, addr = %08x, size = %d\n", addr, size);
-            assert(0);
-        }
-        memory[addr/4] = x;
-    } else if (size == 4) {
-        if (addr % 4 != 0) {
-            fprintf(stderr, "error: unaligned write access, addr = %08x, size = %d\n", addr, size);
-        }
-        assert(addr % 4 == 0);
-        memory[addr/4] = data;
+    if (addr % size != 0) {
+        fprintf(stderr, "error: unaligned write access, addr = %08x, size = %d\n", addr, size);
+        exit(EXIT_FAILURE);
     }
+
+    addr %= 1024;
+    uint32_t word = memory[addr/4];
+    if (size == 1) {
+        word &= ~(0xff << (addr % 4)*8);
+        word |= (data & 0xff) << 8*(addr % 4);
+    } else if (size == 2) {
+        word &= ~(0xffff << (addr % 4)*8);
+        word |= (data & 0xffff) << 8*(addr % 4);
+    } else if (size == 4) {
+        word = data;
+    }
+    memory[addr/4] = word;
 }
 
 /* TODO: handle RV64 */
