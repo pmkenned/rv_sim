@@ -12,7 +12,8 @@
 enum { MAX_STEPS = 100 }; // TODO: make this a command-line argument
 
 #define EXT_M  0
-#define EXT_FD 0
+#define EXT_F 0
+#define EXT_D 0
 #define EXT_C  1
 
 #define OPCODE_LIST_RV32I \
@@ -78,8 +79,8 @@ enum { MAX_STEPS = 100 }; // TODO: make this a command-line argument
 #define OPCODE_LIST_M
 #endif
 
-#if EXT_FD
-#define OPCODE_LIST_FD \
+#if EXT_F
+#define OPCODE_LIST_F \
     X(0x0000707f, 0x00002007, FMT_I,   MNEM_FLW,        "flw") \
     X(0x0000707f, 0x00002027, FMT_S,   MNEM_FSW,        "fsw") \
     X(0x0600007f, 0x00000043, FMT_R4,  MNEM_FMADD_S,    "fmadd.s") \
@@ -105,7 +106,13 @@ enum { MAX_STEPS = 100 }; // TODO: make this a command-line argument
     X(0xfff0707f, 0xe0001053, FMT_R,   MNEM_FCLASS_S,   "fclass.s") \
     X(0xfff0007f, 0xd0000053, FMT_R,   MNEM_FCVT_S_W,   "fcvt.s.w") \
     X(0xfff0007f, 0xd0100053, FMT_R,   MNEM_FCVT_S_WU,  "fcvt.s.wu") \
-    X(0xfff0707f, 0xe0000053, FMT_R,   MNEM_FMV_W_X,    "fmv.w.x") \
+    X(0xfff0707f, 0xe0000053, FMT_R,   MNEM_FMV_W_X,    "fmv.w.x")
+#else
+#define OPCODE_LIST_F
+#endif
+
+#if EXT_D
+#define OPCODE_LIST_D \
     X(0x0000707f, 0x00003007, FMT_I,   MNEM_FLD,        "fld") \
     X(0x0000707f, 0x00003027, FMT_S,   MNEM_FSD,        "fsd") \
     X(0x0600007f, 0x02000043, FMT_R4,  MNEM_FMADD_D,    "fmadd.d") \
@@ -133,7 +140,7 @@ enum { MAX_STEPS = 100 }; // TODO: make this a command-line argument
     X(0xfff0007f, 0xd2000053, FMT_R,   MNEM_FCVT_D_W,   "fcvt.d.w") \
     X(0xfff0007f, 0xd2100053, FMT_R,   MNEM_FCVT_D_WU,  "fcvt.d.wu")
 #else
-#define OPCODE_LIST_FD
+#define OPCODE_LIST_D
 #endif
 
 #if EXT_A
@@ -212,7 +219,8 @@ enum { MAX_STEPS = 100 }; // TODO: make this a command-line argument
 #define OPCODE_LIST \
     OPCODE_LIST_RV32I \
     OPCODE_LIST_M \
-    OPCODE_LIST_FD \
+    OPCODE_LIST_F \
+    OPCODE_LIST_D \
     OPCODE_LIST_A \
     OPCODE_LIST_C \
     OPCODE_LIST_PRIV
