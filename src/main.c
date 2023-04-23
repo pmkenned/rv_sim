@@ -670,7 +670,7 @@ step()
 {
     uint32_t op = M_r(state.pc, 4);
     // compressed
-    int compressed = (op & 3 != 3);
+    int compressed = ((op & 3) != 3);
     if (compressed)
         op &= 0xffff;
     instr_t instr = decode(op);
@@ -957,6 +957,9 @@ step()
             break;
     }
 
+#if 0
+    printf("%05x: %08x\n", (int) pc, op);
+#else
     char buffer[1024];
     int len = snprint_instr(buffer, sizeof(buffer), &instr);
     printf("%08x: %08x ; %s", (int) pc, op, buffer);
@@ -971,6 +974,7 @@ step()
     if (load)
         printf("    M[%x]", x[rs1] + imm);
     printf("\n");
+#endif
 
     state.pc = next_pc;
     x[0] = 0;
@@ -983,17 +987,29 @@ step()
 static void
 print_state()
 {
-    size_t i;
+#if 0
     printf("\n");
-    for (i = 0; i < 32; i++) {
+    for (int i = 0; i < 32; i++) {
         printf("x%zu: %x\n", i, state.regs[i]);
     }
     printf("pc: %x\n", state.pc);
     printf("memory:\n");
-    for (i = 0; i < 1024/16; i++) {
+    for (int i = 0; i < 1024/16; i++) {
         printf("M[%08x]: %08x %08x  %08x %08x\n", (int) i*16, M_r(i*16, 4), M_r(i*16+4, 4), M_r(i*16+8, 4), M_r(i*16+12, 4));
     }
     printf("\n");
+#endif
+
+    uint32_t pc = state.pc;
+    int32_t * x = (int32_t *) state.regs;
+    printf("pc: %08x x8:  %08x x16: %08x x24: %08x\n", pc,   x[8],  x[16], x[24]);
+    printf("x1: %08x x9:  %08x x17: %08x x25: %08x\n", x[1], x[9],  x[17], x[25]);
+    printf("x2: %08x x10: %08x x18: %08x x26: %08x\n", x[2], x[10], x[18], x[26]);
+    printf("x3: %08x x11: %08x x19: %08x x27: %08x\n", x[3], x[11], x[19], x[27]);
+    printf("x4: %08x x12: %08x x20: %08x x28: %08x\n", x[4], x[12], x[20], x[28]);
+    printf("x5: %08x x13: %08x x21: %08x x29: %08x\n", x[5], x[13], x[21], x[29]);
+    printf("x6: %08x x14: %08x x22: %08x x30: %08x\n", x[6], x[14], x[22], x[30]);
+    printf("x7: %08x x15: %08x x23: %08x x31: %08x\n", x[7], x[15], x[23], x[31]);
 }
 
 int
